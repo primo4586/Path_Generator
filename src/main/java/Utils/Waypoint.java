@@ -8,4 +8,7 @@ public class Waypoint extends Vector{
         super(x, y);
         this.velocity = v;
     }
+    public Waypoint(Waypoint p){
+        this(p.x,p.y,p.velocity);
+    }
 }

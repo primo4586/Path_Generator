@@ -1,6 +1,7 @@
 import Utils.*;
 import com.opencsv.exceptions.CsvException;
 import com.sun.tools.jdeprscan.CSVParseException;
+import org.w3c.dom.Text;
 import processing.core.PApplet;
 import processing.core.PImage;
 import Utils.Follower;
@@ -12,30 +13,24 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Scanner;
 
-
 public class Main extends PApplet
 {
-    public static Scanner input = new Scanner(System.in);
     public static void main(String[] args) {
         PApplet.main("Main");
     }
 
-    double lookaheadDis = 100f;
-    double ImageWidth,ImageHeight;
-    double MetersPerPixles,PixlesPerMeters;
-    Vector lookAheadPoint;
-    Path path_;
+    public String PathName = "dolev";
     String imagePath = "Images/frc_2020_arena.png";
-    Follower follower;
+
+    public int ImageWidth,ImageHeight;
+    Path path_;
     PImage backGround;
     public void settings(){
         try {
             BufferedImage image = ImageIO.read(getClass().getResource(imagePath));
             ImageWidth = image.getWidth();
             ImageHeight = image.getHeight();
-            MetersPerPixles = MappingConstants.fieldWidth/ImageWidth;
-            PixlesPerMeters = 1/MetersPerPixles;
-            size((int)ImageWidth,(int)ImageHeight);
+            size(ImageWidth,ImageHeight);
             backGround = loadImage(imagePath);
         } catch (IOException e) {
             e.printStackTrace();
@@ -46,33 +41,28 @@ public class Main extends PApplet
         reset();
     }
     public void reset(){
-        follower = null;
-        path_ = new Path(0.5,1.3,2);
+        path_ = new Path(ImageWidth,ImageHeight);
     }
     public void draw(){
         background(backGround);
-
-
         fill(0);
         if(!path_.isEmpty()) {
             stroke(255, 51, 0);
             for (int i = 0; i < path_.size() - 1; i++) {
-                line((float)(path_.get(i).x/MetersPerPixles),(float)(path_.get(i).y/MetersPerPixles)
-                        , (float)(path_.get(i+1).x/MetersPerPixles),(float)(path_.get(i+1).y/MetersPerPixles));
+                Waypoint p = path_.get2PX(i),p2 = path_.get2PX(i+1);
+                line((float)(p.x),(float)(p.y), (float)(p2.x),(float)(p2.y));
             }
             fill(255, 255, 0);
-//            for(int i = 0; i<path_.size();i++){
-//                text("[" +path_.get(i).velocity+ "]", (float)(path_.get(i).x/MetersPerPixles),(float)(path_.get(i).y/MetersPerPixles));
-//            }
+            for(int i = 0; i < path_.size(); i++){
+                Waypoint p = path_.get2PX(i);
+                text("[]",(float)p.x,(float)p.y);
+            }
         }
-
-
-
     }
 
     public void mousePressed(){
         if(mouseButton == LEFT){
-            path_.add(new Waypoint(MetersPerPixles*mouseX,MetersPerPixles*mouseY,0));
+            path_.add2M(new Waypoint(mouseX,mouseY,0));
         }
     }
     public void keyPressed(){
@@ -82,23 +72,21 @@ public class Main extends PApplet
                 break;
             case 'i':
                 path_.InjectPoints();
-                path_.SmoothPoints(Constants.weightData,Constants.weightSmooth);
-                path_.addVelocities(Constants.VelocityConst);
                 break;
-            case 'f':
-                if(!path_.isEmpty()&& path_.size()>1)
-                    follower = new Follower(path_.get(0),path_.get(1));
-                break;
+            case 't':
+                path_.SmoothPoints();
+                path_.addVelocities();
+
             case 's':
                 try {
-                    path_.SavePath("ttt");
+                    path_.SavePath(PathName);
                 }catch (IOException e){
                    e.printStackTrace();
                 }
                 break;
             case 'l':
                 try {
-                    path_.LoadPath("dolev");
+                    path_.LoadPath(PathName);
                 }catch (IOException e){
                     e.printStackTrace();
                 }catch (CsvException e){
@@ -106,9 +94,6 @@ public class Main extends PApplet
 
                 }
                 break;
-
         }
     }
-
-
 }
