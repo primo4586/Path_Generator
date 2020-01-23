@@ -11,10 +11,20 @@ import java.util.*;
 public class Path extends ArrayList<Waypoint> {
 
     private double spacing, tolerance, maxVal;
-    public Path(double spacing,double tolerance,double maxVal){
-        this.spacing = spacing;
-        this.tolerance = tolerance;
-        this.maxVal = maxVal;
+    private Units unit;
+
+    public Path(int imageWidth, int imageHeight){
+        this.spacing = Constants.SPACING;
+        this.tolerance = Constants.TOLERENCE;
+        this.maxVal = Constants.MAX_VELOCITY;
+        this.unit = new Units(imageWidth,imageHeight);
+    }
+
+    public Path(Units unit){
+        this.spacing = Constants.SPACING;
+        this.tolerance = Constants.TOLERENCE;
+        this.maxVal = Constants.MAX_VELOCITY;
+        this.unit = unit;
     }
     public void SavePath(String pathName) throws IOException{
         String path = "src/main/resources/Paths/"+pathName+".csv";
@@ -37,7 +47,7 @@ public class Path extends ArrayList<Waypoint> {
         List<String[]> data = new ArrayList<>();
         data.add(new String[]{"X pos","Y pos","Velocity"});
         for(int i = 0;i<size();i++){
-            data.add(new String[] {""+get(i).x,""+get(i).y,""+get(i).velocity});
+            data.add(new String[] {""+this.get(i).x,""+this.get(i).y,""+this.get(i).velocity});
         }
         return data;
     }
@@ -53,8 +63,8 @@ public class Path extends ArrayList<Waypoint> {
             return 0;
         return 1/rad;
     }
-
-    public void addVelocities(double velConst){
+    public void addVelocities(){
+        double velConst = Constants.VELOCITY_CONST;
         this.get(0).velocity = this.maxVal;
         double curve;
         for(int i = 1; i< this.size()-1;i++){
@@ -63,32 +73,36 @@ public class Path extends ArrayList<Waypoint> {
         }
         this.get(this.size()-1).velocity = 0;
     }
+
     public boolean InjectPoints(){
         if(this.isEmpty())
             return false;
 
-        Path newPath = new Path(this.spacing,this.tolerance,this.maxVal);
+        Path newPath = new Path(this.unit);
         double distance = 0;
 
         for(int i =  1;i< this.size(); i++){
-            distance = this.get(i-1).distance(this.get(i));
+            distance = get(i-1).distance(get(i));
 
             for(double j=0;j < distance;j += this.spacing){
-                newPath.add(new Waypoint(this.get(i-1).x + j/distance*(this.get(i).x - this.get(i-1).x)
-                        ,this.get(i-1).y + j/distance*(this.get(i).y - this.get(i-1).y)
+                newPath.add(new Waypoint(
+                         get(i-1).x + j/distance*(get(i).x -get(i-1).x)
+                        ,get(i-1).y + j/distance*(get(i).y -get(i-1).y)
                         , 0));
             }
         }
-        newPath.add(this.get(size()-1));
+        newPath.add(get(size()-1));
         this.clear();
         this.addAll(newPath);
         return true;
     }
-    public boolean SmoothPoints(double weightData,double weightSmooth){
+    public boolean SmoothPoints(){
+        double weightData = Constants.WEIGHT_DATA;
+        double weightSmooth = Constants.WEIGHY_SMOOTH;
         if(this.isEmpty())
             return false;
 
-        Path SmoothedPath = new Path(this.spacing,this.tolerance,this.maxVal);
+        Path SmoothedPath = new Path(this.unit);
         SmoothedPath.addAll(this);
 
 
@@ -97,25 +111,23 @@ public class Path extends ArrayList<Waypoint> {
         while(change >= tolerance){
             change = 0;
             for(int i = 1;i< this.size()-1;i++){
-                aux =  this.get(i).x;
-                SmoothedPath.get(i).x += weightData*(this.get(i).x - SmoothedPath.get(i).x) +
-                        weightSmooth*(SmoothedPath.get(i-1).x + SmoothedPath.get(i+1).x - 2*this.get(i).x);
+                aux =  super.get(i).x;
+                SmoothedPath.get(i).x += weightData*(get(i).x - SmoothedPath.get(i).x) +
+                        weightSmooth*(SmoothedPath.get(i-1).x + SmoothedPath.get(i+1).x - 2*super.get(i).x);
                 change += Math.abs(aux - SmoothedPath.get(i).x);
 
 
-                aux =  this.get(i).y;
-                SmoothedPath.get(i).y += weightData*(this.get(i).y - SmoothedPath.get(i).y) +
-                        weightSmooth*(SmoothedPath.get(i-1).y + SmoothedPath.get(i+1).y - 2*this.get(i).y);
-
+                aux =  super.get(i).y;
+                SmoothedPath.get(i).y += weightData*(super.get(i).y - SmoothedPath.get(i).y) +
+                        weightSmooth*(SmoothedPath.get(i-1).y + SmoothedPath.get(i+1).y - 2*super.get(i).y);
                 change += Math.abs(aux - SmoothedPath.get(i).y);
             }
         }
 
-        this.clear();
-        this.addAll(SmoothedPath);
+        super.clear();
+        super.addAll(SmoothedPath);
         return true;
     }
-
 
     public void initPath(Waypoint[] waypoints){
         for(Waypoint p : waypoints){
@@ -128,9 +140,10 @@ public class Path extends ArrayList<Waypoint> {
             this.add(p);
         }
         if(smoothAndInject){
-            SmoothPoints(Constants.weightData, Constants.weightSmooth);
+            SmoothPoints();
         }
     }
+
     public String toString(){
         String str = "";
         for(int i =0; i<this.size();i++){
@@ -148,4 +161,16 @@ public class Path extends ArrayList<Waypoint> {
         csvwriter.writeAll(data);
         csvwriter.close();
     }
+
+    public boolean add2M(Waypoint waypoint) {
+        waypoint.multiply(unit.METERS_PER_PIXLE);
+        return super.add(waypoint);
+    }
+
+    public Waypoint get2PX(int index) {
+        Waypoint w = new Waypoint(super.get(index));
+        w.multiply(unit.PIXLES_PER_METER);
+        return w;
+    }
+
 }
