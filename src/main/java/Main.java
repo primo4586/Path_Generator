@@ -1,6 +1,5 @@
 import Utils.*;
 import com.opencsv.exceptions.CsvException;
-import com.sun.tools.jdeprscan.CSVParseException;
 import org.w3c.dom.Text;
 import processing.core.PApplet;
 import processing.core.PImage;
@@ -91,7 +90,6 @@ public class Main extends PApplet
                     e.printStackTrace();
                 }catch (CsvException e){
                     e.getLineNumber();
-
                 }
                 break;
         }
